@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Budget Plus
 
-## Getting Started
+Un monorepo contenant une application de gestion de budget avec un frontend Next.js et une API NestJS.
 
-First, run the development server:
+## Structure du projet
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+budget-plus/
+├── apps/
+│   ├── frontend/          # Application Next.js (React)
+│   └── api/               # API NestJS
+├── packages/              # Packages partagés (à venir)
+├── package.json           # Configuration du monorepo
+└── tsconfig.json          # Configuration TypeScript globale
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Prérequis
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Node.js >= 18.0.0
+- npm >= 8.0.0
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Installation
 
-## Learn More
+```bash
+# Installer toutes les dépendances
+npm run install:all
 
-To learn more about Next.js, take a look at the following resources:
+# Ou installer manuellement
+npm install
+cd apps/frontend && npm install
+cd ../api && npm install
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts disponibles
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Développement
+```bash
+# Démarrer le frontend et l'API en parallèle
+npm run dev
 
-## Deploy on Vercel
+# Démarrer seulement le frontend (port 3000)
+npm run dev:frontend
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Démarrer seulement l'API (port 3001)
+npm run dev:api
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Build
+```bash
+# Build complet (frontend + API)
+npm run build
+
+# Build frontend seulement
+npm run build:frontend
+
+# Build API seulement
+npm run build:api
+```
+
+### Production
+```bash
+# Démarrer en production
+npm run start
+
+# Démarrer frontend seulement
+npm run start:frontend
+
+# Démarrer API seulement
+npm run start:api
+```
+
+### Autres
+```bash
+# Linter
+npm run lint
+
+# Tests
+npm run test
+
+# Nettoyer les node_modules
+npm run clean
+```
+
+## URLs
+
+- **Frontend**: http://localhost:3000 (Next.js)
+- **API**: http://localhost:3001 (NestJS)
+- **API Health Check**: http://localhost:3001/health
+
+## Configuration des ports
+
+Les ports sont configurés de manière explicite :
+
+- **Frontend (Next.js)** : Port 3000
+  - Configuré dans `apps/frontend/next.config.ts`
+  - Scripts avec `--port 3000`
+
+- **API (NestJS)** : Port 3001
+  - Configuré dans `apps/api/config/app.config.ts`
+  - Variable d'environnement `PORT=3001`
+  - CORS configuré pour accepter les requêtes du frontend
+
+## Développement
+
+### Frontend (Next.js)
+Le frontend est situé dans `apps/frontend/` et utilise Next.js 15 avec React 19.
+
+### API (NestJS)
+L'API est située dans `apps/api/` et utilise NestJS avec TypeScript.
+
+### Packages partagés
+Les packages partagés peuvent être ajoutés dans le dossier `packages/` pour du code commun entre le frontend et l'API.

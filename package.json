@@ -2,22 +2,31 @@
   "name": "budget-plus",
   "version": "0.1.0",
   "private": true,
+  "description": "Budget Plus - Monorepo with Next.js frontend and NestJS API",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
-    "start": "next start"
-  },
-  "dependencies": {
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "next": "15.5.4"
+    "dev": "concurrently --names \"FRONTEND,API\" --prefix-colors \"blue,green\" \"npm run dev:frontend\" \"npm run dev:api\"",
+    "dev:frontend": "npm run dev --workspace=@budget-plus/frontend",
+    "dev:api": "npm run start:dev --workspace=@budget-plus/api",
+    "build": "npm run build --workspace=@budget-plus/frontend && npm run build --workspace=@budget-plus/api",
+    "build:frontend": "npm run build --workspace=@budget-plus/frontend",
+    "build:api": "npm run build --workspace=@budget-plus/api",
+    "start": "concurrently --names \"FRONTEND,API\" --prefix-colors \"blue,green\" \"npm run start:frontend\" \"npm run start:api\"",
+    "start:frontend": "npm run start --workspace=@budget-plus/frontend",
+    "start:api": "npm run start:prod --workspace=@budget-plus/api",
+    "lint": "npm run lint --workspace=@budget-plus/frontend && npm run lint --workspace=@budget-plus/api",
+    "test": "npm run test --workspace=@budget-plus/api",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
+    "install:all": "npm install && npm install --workspace=@budget-plus/frontend && npm install --workspace=@budget-plus/api"
   },
   "devDependencies": {
-    "typescript": "^5",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4"
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
