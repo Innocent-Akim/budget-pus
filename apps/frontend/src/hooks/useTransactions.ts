@@ -1,77 +1,119 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { transactionsService } from '@/services/transactions.service';
 import { Transaction, TransactionType } from '@/types/budget';
 
 export function useTransactions() {
   const { data: session } = useSession();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchTransactions = async () => {
-    if (!session?.user?.id) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
+  // Query pour récupérer les transactions
+  const {
+    data: transactions = [],
+    isLoading: loading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['transactions', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) {
+        throw new Error('No session or user ID');
+      }
+      console.log('🔄 Fetching transactions for user:', session.user.id);
       const data = await transactionsService.getTransactions();
-      setTransactions(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des transactions');
-    } finally {
-      setLoading(false);
-    }
-  };
+      console.log('✅ Transactions fetched:', data);
+      
+      // Convertir les dates string en objets Date
+      const processedData = Array.isArray(data) ? data.map(transaction => ({
+        ...transaction,
+        date: new Date(transaction.date),
+        createdAt: new Date(transaction.createdAt),
+        updatedAt: new Date(transaction.updatedAt),
+        recurringEndDate: transaction.recurringEndDate ? new Date(transaction.recurringEndDate) : undefined,
+      })) : [];
+      
+      return processedData;
+    },
+    enabled: !!session?.user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  const addTransaction = async (transaction: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
-    if (!session?.user?.id) return;
-    
-    try {
+  // Mutation pour ajouter une transaction
+  const addTransactionMutation = useMutation({
+    mutationFn: async (transaction: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+      if (!session?.user?.id) throw new Error('No session or user ID');
+      
       const transactionData = {
         ...transaction,
         date: transaction.date.toISOString().split('T')[0],
         recurringEndDate: transaction.recurringEndDate?.toISOString().split('T')[0],
       };
-      const newTransaction = await transactionsService.createTransaction(transactionData);
-      setTransactions(prev => [newTransaction, ...prev]);
-      return newTransaction;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l\'ajout de la transaction');
-      throw err;
+      return await transactionsService.createTransaction(transactionData);
+    },
+    onSuccess: (newTransaction) => {
+      // Invalider et refetch les transactions
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      // Ou optimiser avec setQueryData pour une mise à jour immédiate
+      queryClient.setQueryData(['transactions', session?.user?.id], (old: Transaction[] = []) => {
+        return [newTransaction, ...old];
+      });
+    },
+    onError: (error) => {
+      console.error('❌ Error adding transaction:', error);
     }
-  };
+  });
 
-  const updateTransaction = async (id: string, transaction: Partial<Transaction>) => {
-    if (!session?.user?.id) return;
-    
-    try {
+  // Mutation pour mettre à jour une transaction
+  const updateTransactionMutation = useMutation({
+    mutationFn: async ({ id, transaction }: { id: string; transaction: Partial<Transaction> }) => {
+      if (!session?.user?.id) throw new Error('No session or user ID');
+      
       const transactionData = {
         ...transaction,
         date: transaction.date?.toISOString().split('T')[0],
         recurringEndDate: transaction.recurringEndDate?.toISOString().split('T')[0],
       };
-      const updatedTransaction = await transactionsService.updateTransaction(id, transactionData);
-      setTransactions(prev => 
-        prev.map(t => t.id === id ? updatedTransaction : t)
-      );
-      return updatedTransaction;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la transaction');
-      throw err;
+      return await transactionsService.updateTransaction(id, transactionData);
+    },
+    onSuccess: (updatedTransaction) => {
+      // Mise à jour optimiste
+      queryClient.setQueryData(['transactions', session?.user?.id], (old: Transaction[] = []) => {
+        return old.map(t => t.id === updatedTransaction.id ? updatedTransaction : t);
+      });
+    },
+    onError: (error) => {
+      console.error('❌ Error updating transaction:', error);
     }
+  });
+
+  // Mutation pour supprimer une transaction
+  const deleteTransactionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!session?.user?.id) throw new Error('No session or user ID');
+      return await transactionsService.deleteTransaction(id);
+    },
+    onSuccess: (_, deletedId) => {
+      // Mise à jour optimiste
+      queryClient.setQueryData(['transactions', session?.user?.id], (old: Transaction[] = []) => {
+        return old.filter(t => t.id !== deletedId);
+      });
+    },
+    onError: (error) => {
+      console.error('❌ Error deleting transaction:', error);
+    }
+  });
+
+  // Wrapper functions pour maintenir la compatibilité
+  const addTransaction = async (transaction: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+    return addTransactionMutation.mutateAsync(transaction);
+  };
+
+  const updateTransaction = async (id: string, transaction: Partial<Transaction>) => {
+    return updateTransactionMutation.mutateAsync({ id, transaction });
   };
 
   const deleteTransaction = async (id: string) => {
-    if (!session?.user?.id) return;
-    
-    try {
-      await transactionsService.deleteTransaction(id);
-      setTransactions(prev => prev.filter(t => t.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression de la transaction');
-      throw err;
-    }
+    return deleteTransactionMutation.mutateAsync(id);
   };
 
   const getCurrentMonthTransactions = () => {
@@ -81,6 +123,10 @@ export function useTransactions() {
   };
 
   const getTransactionsByMonth = (monthKey: string) => {
+    if (!transactions || !Array.isArray(transactions)) {
+      return [];
+    }
+    
     const [year, month] = monthKey.split('-');
     const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
     const endDate = new Date(parseInt(year), parseInt(month), 0);
@@ -120,16 +166,10 @@ export function useTransactions() {
     return expensesByCategory;
   };
 
-  useEffect(() => {
-    if (session?.user?.id) {
-      fetchTransactions();
-    }
-  }, [session?.user?.id]);
-
   return {
     transactions,
     loading,
-    error,
+    error: error?.message || null,
     addTransaction,
     updateTransaction,
     deleteTransaction,
@@ -137,6 +177,13 @@ export function useTransactions() {
     getTransactionsByMonth,
     getTotalsByMonth,
     getExpensesByCategory,
-    refetch: fetchTransactions,
+    refetch,
+    // Nouvelles propriétés React Query
+    isAdding: addTransactionMutation.isPending,
+    isUpdating: updateTransactionMutation.isPending,
+    isDeleting: deleteTransactionMutation.isPending,
+    addError: addTransactionMutation.error?.message || null,
+    updateError: updateTransactionMutation.error?.message || null,
+    deleteError: deleteTransactionMutation.error?.message || null,
   };
 }

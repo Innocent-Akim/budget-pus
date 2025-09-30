@@ -4,16 +4,27 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatCurrency, formatMonth, getMonthKey } from '@/lib/utils';
 import { IoArrowBack, IoArrowForward, IoCalendar, IoTrendingUp, IoTrendingDown } from 'react-icons/io5';
+import type { IconType } from 'react-icons';
+
+// Cast les icônes pour résoudre les conflits de types React
+const Icon = ({ icon: IconComponent, className }: { icon: IconType; className: string }) => 
+  IconComponent({ className }) as React.ReactElement;
 
 export function MonthlyHistory() {
   const { getTotalsByMonth, getTransactionsByMonth } = useTransactions();
+  const { monthlyIncome } = useUserSettings();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const currentMonthKey = getMonthKey(currentMonth);
   const { income, expenses, savings } = getTotalsByMonth(currentMonthKey);
   const transactions = getTransactionsByMonth(currentMonthKey);
+  
+  // Calculer le revenu total (revenu mensuel fixe + transactions de revenus)
+  const totalIncome = income + monthlyIncome;
+  const totalSavings = totalIncome - expenses;
 
   const goToPreviousMonth = () => {
     setCurrentMonth(prev => {
@@ -43,7 +54,7 @@ export function MonthlyHistory() {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-xl font-semibold light:text-gray-800 dark:text-gray-100 flex items-center gap-2">
-              <IoCalendar className="h-6 w-6 text-indigo-600" />
+              <Icon icon={IoCalendar} className="h-6 w-6 text-indigo-600" />
               Historique mensuel
             </CardTitle>
             <CardDescription className="light:text-gray-600 dark:text-gray-300">
@@ -57,7 +68,7 @@ export function MonthlyHistory() {
               onClick={goToPreviousMonth}
               className="h-8 w-8 p-0"
             >
-              <IoArrowBack className="h-4 w-4" />
+              <Icon icon={IoArrowBack} className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
@@ -74,7 +85,7 @@ export function MonthlyHistory() {
               className="h-8 w-8 p-0"
               disabled={isCurrentMonth}
             >
-              <IoArrowForward className="h-4 w-4" />
+              <Icon icon={IoArrowForward} className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -88,31 +99,31 @@ export function MonthlyHistory() {
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center p-4 rounded-lg bg-green-50 dark:bg-green-900/20">
               <div className="flex items-center justify-center mb-2">
-                <IoTrendingUp className="h-5 w-5 text-green-600" />
+                <Icon icon={IoTrendingUp} className="h-5 w-5 text-green-600" />
               </div>
               <div className="text-lg font-semibold light:text-gray-800 dark:text-gray-100">
-                {formatCurrency(income)}
+                {formatCurrency(totalIncome)}
               </div>
               <div className="text-sm light:text-gray-600 dark:text-gray-400">Revenus</div>
             </div>
             <div className="text-center p-4 rounded-lg bg-red-50 dark:bg-red-900/20">
               <div className="flex items-center justify-center mb-2">
-                <IoTrendingDown className="h-5 w-5 text-red-600" />
+                <Icon icon={IoTrendingDown} className="h-5 w-5 text-red-600" />
               </div>
               <div className="text-lg font-semibold light:text-gray-800 dark:text-gray-100">
                 {formatCurrency(expenses)}
               </div>
               <div className="text-sm light:text-gray-600 dark:text-gray-400">Dépenses</div>
             </div>
-            <div className={`text-center p-4 rounded-lg ${savings >= 0 ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-orange-50 dark:bg-orange-900/20'}`}>
+            <div className={`text-center p-4 rounded-lg ${totalSavings >= 0 ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-orange-50 dark:bg-orange-900/20'}`}>
               <div className="flex items-center justify-center mb-2">
-                <div className={`h-5 w-5 rounded-full ${savings >= 0 ? 'bg-blue-500' : 'bg-orange-500'}`} />
+                <div className={`h-5 w-5 rounded-full ${totalSavings >= 0 ? 'bg-blue-500' : 'bg-orange-500'}`} />
               </div>
-              <div className={`text-lg font-semibold ${savings >= 0 ? 'light:text-gray-800 dark:text-gray-100' : 'text-orange-600'}`}>
-                {formatCurrency(savings)}
+              <div className={`text-lg font-semibold ${totalSavings >= 0 ? 'light:text-gray-800 dark:text-gray-100' : 'text-orange-600'}`}>
+                {formatCurrency(totalSavings)}
               </div>
               <div className="text-sm light:text-gray-600 dark:text-gray-400">
-                {savings >= 0 ? 'Épargne' : 'Déficit'}
+                {totalSavings >= 0 ? 'Épargne' : 'Déficit'}
               </div>
             </div>
           </div>
@@ -124,7 +135,7 @@ export function MonthlyHistory() {
           </h4>
           {transactions.length === 0 ? (
             <div className="text-center py-8">
-              <IoCalendar className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+              <Icon icon={IoCalendar} className="h-12 w-12 mx-auto text-gray-400 mb-3" />
               <p className="light:text-gray-500 dark:text-gray-400">
                 Aucune transaction pour ce mois
               </p>
@@ -132,7 +143,11 @@ export function MonthlyHistory() {
           ) : (
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {transactions
-                .sort((a, b) => b.date.getTime() - a.date.getTime())
+                .sort((a, b) => {
+                  const dateA = new Date(a.date);
+                  const dateB = new Date(b.date);
+                  return dateB.getTime() - dateA.getTime();
+                })
                 .map((transaction) => (
                   <div
                     key={transaction.id}
@@ -145,9 +160,9 @@ export function MonthlyHistory() {
                           : 'bg-red-100 dark:bg-red-900/30 text-red-600'
                       }`}>
                         {transaction.type === 'income' ? (
-                          <IoTrendingUp className="h-4 w-4" />
+                          <Icon icon={IoTrendingUp} className="h-4 w-4" />
                         ) : (
-                          <IoTrendingDown className="h-4 w-4" />
+                          <Icon icon={IoTrendingDown} className="h-4 w-4" />
                         )}
                       </div>
                       <div>

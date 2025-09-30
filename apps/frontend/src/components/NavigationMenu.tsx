@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-    Home,
-    BarChart3,
-    Target,
-    Calendar,
-    Settings,
-    Menu,
-    X,
-    CreditCard
+  Home,
+  BarChart3,
+  Target,
+  Calendar,
+  Settings,
+  Menu,
+  X,
+  Wallet
 } from 'lucide-react';
 
 interface NavigationMenuProps {
@@ -23,7 +23,7 @@ export function NavigationMenu({ currentSection = 'dashboard', onSectionChange }
 
   const menuItems = [
     { id: 'dashboard', label: 'Tableau de bord', icon: Home },
-    { id: 'transactions', label: 'Transactions', icon: CreditCard },
+    { id: 'transactions', label: 'Transactions', icon: Wallet },
     { id: 'analytics', label: 'Analyses', icon: BarChart3 },
     { id: 'goals', label: 'Objectifs', icon: Target },
     { id: 'history', label: 'Historique', icon: Calendar },

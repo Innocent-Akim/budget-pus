@@ -52,9 +52,10 @@ export function QueryProvider({ children }: QueryProviderProps) {
     <QueryClientProvider client={queryClient}>
       {children}
       {/* DevTools pour le développement - seulement en mode dev */}
-      {process.env.NODE_ENV === 'development' && (
+      {process.env.NODE_ENV === 'development' && 
+      // @ts-ignore
         <ReactQueryDevtools initialIsOpen={false} />
-      )}
+      }
     </QueryClientProvider>
   );
 }

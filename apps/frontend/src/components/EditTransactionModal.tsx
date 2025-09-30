@@ -6,14 +6,29 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { X } from 'lucide-react';
 import {
-    Transaction,
-    TransactionType,
-    TransactionCategory,
-    CATEGORY_LABELS,
-    INCOME_CATEGORIES,
-    EXPENSE_CATEGORIES
+  Transaction,
+  TransactionType,
+  TransactionCategory,
+  CATEGORY_LABELS,
+  INCOME_CATEGORIES,
+  EXPENSE_CATEGORIES
 } from '@/types/budget';
 import { useTransactions } from '@/hooks/useTransactions';
+
+// Helper function to safely parse tags
+const parseTags = (tags: any): string[] => {
+  if (Array.isArray(tags)) {
+    return tags;
+  }
+  if (typeof tags === 'string') {
+    try {
+      return JSON.parse(tags);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
 
 interface EditTransactionModalProps {
   transaction: Transaction | null;
@@ -44,7 +59,7 @@ export function EditTransactionModal({ transaction, open, onClose }: EditTransac
       setDescription(transaction.description);
       setDate(transaction.date.toISOString().split('T')[0]);
       setNotes(transaction.notes || '');
-      setTags(transaction.tags?.join(', ') || '');
+      setTags(parseTags(transaction.tags).join(', '));
       setIsRecurring(transaction.isRecurring);
       setRecurringPattern(transaction.recurringPattern || '');
       setRecurringEndDate(transaction.recurringEndDate?.toISOString().split('T')[0] || '');

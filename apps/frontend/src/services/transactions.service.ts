@@ -1,4 +1,4 @@
-import { ApiClient } from "@/lib/api-client";
+import { apiClient } from "@/lib/api-client";
 import { Transaction, TransactionType, TransactionCategory } from "@/types/budget";
 
 export interface CreateTransactionRequest {
@@ -27,7 +27,6 @@ export interface TransactionFilters {
 }
 
 class TransactionsService {
-  constructor(private readonly apiClient: ApiClient) {}
 
   // CRUD Operations
   async getTransactions(filters?: TransactionFilters): Promise<Transaction[]> {
@@ -42,44 +41,44 @@ class TransactionsService {
     
     const queryString = params.toString();
     const url = queryString ? `/transactions?${queryString}` : '/transactions';
-    return await this.apiClient.get(url);
+    return await apiClient.get(url);
   }
 
   async getTransaction(id: string): Promise<Transaction> {
-    return await this.apiClient.get(`/transactions/${id}`);
+    return await apiClient.get(`/transactions/${id}`);
   }
 
   async createTransaction(transaction: CreateTransactionRequest): Promise<Transaction> {
-    return await this.apiClient.post('/transactions', transaction);
+    return await apiClient.post('/transactions', transaction);
   }
 
   async updateTransaction(id: string, transaction: UpdateTransactionRequest): Promise<Transaction> {
-    return await this.apiClient.put(`/transactions/${id}`, transaction);
+    return await apiClient.put(`/transactions/${id}`, transaction);
   }
   
   async deleteTransaction(id: string): Promise<void> {
-    await this.apiClient.delete(`/transactions/${id}`);
+    await apiClient.delete(`/transactions/${id}`);
   }
 
   // Filtered queries
   async getTransactionsByMonth(month: string): Promise<Transaction[]> {
-    return await this.apiClient.get(`/transactions/month/${month}`);
+    return await apiClient.get(`/transactions/month/${month}`);
   }
   
   async getTransactionsByYear(year: string): Promise<Transaction[]> {
-    return await this.apiClient.get(`/transactions/year/${year}`);
+    return await apiClient.get(`/transactions/year/${year}`);
   }
 
   async getTransactionsByCategory(category: TransactionCategory): Promise<Transaction[]> {
-    return await this.apiClient.get(`/transactions/category/${category}`);
+    return await apiClient.get(`/transactions/category/${category}`);
   }
   
   async getTransactionsByType(type: TransactionType): Promise<Transaction[]> {
-    return await this.apiClient.get(`/transactions/type/${type}`);
+    return await apiClient.get(`/transactions/type/${type}`);
   }
 
   async getTransactionsByDateRange(startDate: string, endDate: string): Promise<Transaction[]> {
-    return await this.apiClient.get(`/transactions/date-range?start=${startDate}&end=${endDate}`);
+    return await apiClient.get(`/transactions/date-range?start=${startDate}&end=${endDate}`);
   }
 
   // Analytics and summaries
@@ -90,37 +89,37 @@ class TransactionsService {
     transactionCount: number;
   }> {
     const url = month ? `/transactions/summary?month=${month}` : '/transactions/summary';
-    return await this.apiClient.get(url);
+    return await apiClient.get(url);
   }
 
   async getExpensesByCategory(month?: string): Promise<Record<string, number>> {
     const url = month ? `/transactions/expenses-by-category?month=${month}` : '/transactions/expenses-by-category';
-    return await this.apiClient.get(url);
+    return await apiClient.get(url);
   }
 
   async getIncomeByCategory(month?: string): Promise<Record<string, number>> {
     const url = month ? `/transactions/income-by-category?month=${month}` : '/transactions/income-by-category';
-    return await this.apiClient.get(url);
+    return await apiClient.get(url);
   }
 
   // Recurring transactions
   async getRecurringTransactions(): Promise<Transaction[]> {
-    return await this.apiClient.get('/transactions/recurring');
+    return await apiClient.get('/transactions/recurring');
   }
 
   async createRecurringTransaction(transaction: CreateTransactionRequest): Promise<Transaction> {
-    return await this.apiClient.post('/transactions/recurring', transaction);
+    return await apiClient.post('/transactions/recurring', transaction);
   }
 
   // Search and advanced queries
   async searchTransactions(query: string): Promise<Transaction[]> {
-    return await this.apiClient.get(`/transactions/search?q=${encodeURIComponent(query)}`);
+    return await apiClient.get(`/transactions/search?q=${encodeURIComponent(query)}`);
   }
 
   async getTransactionsByTags(tags: string[]): Promise<Transaction[]> {
     const tagsParam = tags.join(',');
-    return await this.apiClient.get(`/transactions/tags?tags=${encodeURIComponent(tagsParam)}`);
+    return await apiClient.get(`/transactions/tags?tags=${encodeURIComponent(tagsParam)}`);
   }
 }
 
-export const transactionsService = new TransactionsService(new ApiClient());
+export const transactionsService = new TransactionsService();

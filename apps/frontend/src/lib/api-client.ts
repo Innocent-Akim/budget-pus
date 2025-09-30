@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import { getSession } from 'next-auth/react';
 
 // Types pour les réponses API
 export interface ApiResponse<T = any> {
@@ -43,8 +44,16 @@ class ApiClient {
   private setupInterceptors() {
     // Intercepteur pour les requêtes
     this.client.interceptors.request.use(
-      (config) => {
-        // L'authentification est maintenant gérée par NextAuth
+      async (config) => {
+        try {
+          const session = await getSession();
+          if (session?.user?.accessToken) {
+            config.headers.Authorization = `Bearer ${session.user.accessToken}`;
+          }
+        } catch (error) {
+          console.warn('Could not get session for API request:', error);
+        }
+        
         console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
         return config;
       },
@@ -66,8 +75,12 @@ class ApiClient {
         // Gestion des erreurs communes
         if (error.response?.status === 401) {
           // Token expiré ou invalide - rediriger vers la page de connexion
+          console.warn('Token invalide ou expiré, redirection vers la page de connexion');
           if (typeof window !== 'undefined') {
-            window.location.href = '/auth/signin';
+            // Utiliser NextAuth signOut pour nettoyer la session
+            import('next-auth/react').then(({ signOut }) => {
+              signOut({ callbackUrl: '/auth/signin' });
+            });
           }
         }
         
@@ -99,40 +112,45 @@ class ApiClient {
    * Effectue une requête GET
    */
   async get<T>(url: string, params?: Record<string, any>): Promise<T> {
-    const response = await this.client.get<ApiResponse<T>>(url, { params });
-    return response.data.data;
+    const response = await this.client.get<ApiResponse<T> | T>(url, { params });
+    // Handle both wrapped and direct response formats
+    return (response.data as any).data || response.data;
   }
 
   /**
    * Effectue une requête POST
    */
   async post<T>(url: string, data?: any): Promise<T> {
-    const response = await this.client.post<ApiResponse<T>>(url, data);
-    return response.data.data;
+    const response = await this.client.post<ApiResponse<T> | T>(url, data);
+    // Handle both wrapped and direct response formats
+    return (response.data as any).data || response.data;
   }
 
   /**
    * Effectue une requête PUT
    */
   async put<T>(url: string, data?: any): Promise<T> {
-    const response = await this.client.put<ApiResponse<T>>(url, data);
-    return response.data.data;
+    const response = await this.client.put<ApiResponse<T> | T>(url, data);
+    // Handle both wrapped and direct response formats
+    return (response.data as any).data || response.data;
   }
 
   /**
    * Effectue une requête PATCH
    */
   async patch<T>(url: string, data?: any): Promise<T> {
-    const response = await this.client.patch<ApiResponse<T>>(url, data);
-    return response.data.data;
+    const response = await this.client.patch<ApiResponse<T> | T>(url, data);
+    // Handle both wrapped and direct response formats
+    return (response.data as any).data || response.data;
   }
 
   /**
    * Effectue une requête DELETE
    */
   async delete<T>(url: string): Promise<T> {
-    const response = await this.client.delete<ApiResponse<T>>(url);
-    return response.data.data;
+    const response = await this.client.delete<ApiResponse<T> | T>(url);
+    // Handle both wrapped and direct response formats
+    return (response.data as any).data || response.data;
   }
 
   setAuthToken(token: string): void {

@@ -7,15 +7,15 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatCurrency } from '@/lib/utils';
 import {
-    TrendingUp,
-    TrendingDown,
-    DollarSign, BarChart3,
-    PieChart,
-    Activity,
-    Target,
-    ArrowUpRight,
-    ArrowDownRight,
-    Minus
+  TrendingUp,
+  TrendingDown,
+  DollarSign, BarChart3,
+  PieChart,
+  Activity,
+  Target,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus
 } from 'lucide-react';
 
 export function AnalyticsSection() {
@@ -43,17 +43,23 @@ export function AnalyticsSection() {
       const totals = getTotalsByMonth(monthKey);
       const expensesByCategory = getExpensesByCategory(monthKey);
       
+      // Inclure le revenu mensuel fixe dans le calcul des revenus
+      const totalIncome = totals.income + monthlyIncome;
+      const totalSavings = totalIncome - totals.expenses;
+      
       months.push({
         month: monthName,
         monthKey,
-        ...totals,
+        income: totalIncome,
+        expenses: totals.expenses,
+        savings: totalSavings,
         expensesByCategory,
         transactionCount: getTransactionsByMonth(monthKey).length
       });
     }
     
     return months;
-  }, [selectedPeriod, getTransactionsByMonth, getTotalsByMonth, getExpensesByCategory]);
+  }, [selectedPeriod, getTransactionsByMonth, getTotalsByMonth, getExpensesByCategory, monthlyIncome]);
 
   // Calculer les moyennes et tendances
   const averages = useMemo(() => {

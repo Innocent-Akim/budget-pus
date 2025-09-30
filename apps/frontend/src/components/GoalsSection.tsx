@@ -7,19 +7,32 @@ import { AddGoalModal } from '@/components/AddGoalModal';
 import { useGoals } from '@/hooks/useGoals';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Target, Plus, Trash2, TrendingUp } from 'lucide-react';
+import { Goal } from '@/types/budget';
 
 export function GoalsSection() {
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
   const { goals: budgetGoals, deleteGoal } = useGoals();
 
-  const calculateProgress = (goal: any) => {
-    return Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+
+  const calculateProgress = (goal: Goal) => {
+    const currentAmount = goal.currentAmount || 0;
+    const targetAmount = goal.targetAmount || 0;
+    if (targetAmount === 0) return 0;
+    return Math.min((currentAmount / targetAmount) * 100, 100);
   };
 
-  const calculateMonthsRemaining = (targetDate: Date) => {
+  const calculateMonthsRemaining = (targetDate: Date | string) => {
     const now = new Date();
-    const months = (targetDate.getFullYear() - now.getFullYear()) * 12 + 
-                  (targetDate.getMonth() - now.getMonth());
+    const target = new Date(targetDate);
+    
+    // Check if the date is valid
+    if (isNaN(target.getTime())) {
+      console.warn('Invalid target date:', targetDate);
+      return 0;
+    }
+    
+    const months = (target.getFullYear() - now.getFullYear()) * 12 + 
+                  (target.getMonth() - now.getMonth());
     return Math.max(0, months);
   };
 
@@ -48,7 +61,7 @@ export function GoalsSection() {
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          {budgetGoals.length === 0 ? (
+          {budgetGoals?.length === 0 ? (
             <div className="text-center py-8">
               <div className="h-12 w-12 mx-auto mb-4 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
                 <Target className="h-6 w-6 text-blue-600" />
@@ -67,11 +80,13 @@ export function GoalsSection() {
             </div>
           ) : (
             <div className="space-y-6">
-              {budgetGoals.map((goal, index) => {
+              {budgetGoals?.map((goal, index) => {
+                if (!goal) return null;
+                
                 const progress = calculateProgress(goal);
                 const monthsRemaining = calculateMonthsRemaining(goal.targetDate);
                 const monthlyTarget = monthsRemaining > 0 
-                  ? (goal.targetAmount - goal.currentAmount) / monthsRemaining
+                  ? (goal.targetAmount - (goal.currentAmount || 0)) / monthsRemaining
                   : 0;
 
                 return (
@@ -96,8 +111,8 @@ export function GoalsSection() {
 
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">{formatCurrency(goal.currentAmount)}</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(goal.targetAmount)}</span>
+                        <span className="text-gray-600 dark:text-gray-400">{formatCurrency(goal.currentAmount || 0)}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(goal.targetAmount || 0)}</span>
                       </div>
                       <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div

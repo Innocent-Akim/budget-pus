@@ -6,19 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
-    Transaction,
-    TransactionType,
-    TransactionCategory,
-    CATEGORY_LABELS
+  Transaction,
+  TransactionType,
+  TransactionCategory,
+  CATEGORY_LABELS
 } from '@/types/budget';
 import {
-    Search,
-    Plus,
-    Trash2,
-    TrendingUp,
-    TrendingDown,
-    Calendar,
-    Target
+  Search,
+  Plus,
+  Trash2,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  Target
 } from 'lucide-react';
 
 interface TransactionListProps {
@@ -26,6 +26,21 @@ interface TransactionListProps {
   onEdit?: (transaction: Transaction) => void;
   onDelete?: (transactionId: string) => void;
 }
+
+// Helper function to safely parse tags
+const parseTags = (tags: any): string[] => {
+  if (Array.isArray(tags)) {
+    return tags;
+  }
+  if (typeof tags === 'string') {
+    try {
+      return JSON.parse(tags);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
 
 export function TransactionList({ transactions, onEdit, onDelete }: TransactionListProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,7 +54,7 @@ export function TransactionList({ transactions, onEdit, onDelete }: TransactionL
     .filter(transaction => {
       const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            transaction.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           transaction.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+                           parseTags(transaction.tags).some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesType = filterType === 'all' || transaction.type === filterType;
       const matchesCategory = filterCategory === 'all' || transaction.category === filterCategory;
@@ -51,7 +66,9 @@ export function TransactionList({ transactions, onEdit, onDelete }: TransactionL
       
       switch (sortBy) {
         case 'date':
-          comparison = a.date.getTime() - b.date.getTime();
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          comparison = dateA.getTime() - dateB.getTime();
           break;
         case 'amount':
           comparison = a.amount - b.amount;
@@ -204,12 +221,15 @@ export function TransactionList({ transactions, onEdit, onDelete }: TransactionL
                         {formatDate(transaction.date)}
                       </span>
                       <span>{CATEGORY_LABELS[transaction.category]}</span>
-                      {transaction.tags && transaction.tags.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          # {transaction.tags.slice(0, 2).join(', ')}
-                          {transaction.tags.length > 2 && ` +${transaction.tags.length - 2}`}
-                        </span>
-                      )}
+                      {(() => {
+                        const tagsArray = parseTags(transaction.tags);
+                        return tagsArray.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            # {tagsArray.slice(0, 2).join(', ')}
+                            {tagsArray.length > 2 && ` +${tagsArray.length - 2}`}
+                          </span>
+                        );
+                      })()}
                     </div>
                     
                     {transaction.notes && (

@@ -5,6 +5,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.JWT_SECRET || process.env.AUTH_SECRET,
   providers: [
     GoogleProvider({
       allowDangerousEmailAccountLinking: true,

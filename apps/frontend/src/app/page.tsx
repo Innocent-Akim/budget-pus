@@ -46,6 +46,15 @@ export default function HomePage() {
   const { goals: budgetGoals } = useGoals();
   const { monthlyIncome } = useUserSettings();
 
+  // Debug logs
+  console.log('🔍 Page state:', {
+    session: !!session,
+    userId: session?.user?.id,
+    transactions: transactions?.length || 0,
+    goals: budgetGoals?.length || 0,
+    monthlyIncome
+  });
+
   // Afficher le formulaire de connexion si l'utilisateur n'est pas connecté
   if (status === 'loading') {
     return (
@@ -68,9 +77,13 @@ export default function HomePage() {
   const currentMonthTransactions = getCurrentMonthTransactions();
   const { income, expenses, savings } = getTotalsByMonth(currentMonthKey);
   const expensesByCategory = getExpensesByCategory(currentMonthKey);
+  
+  // Calculer le revenu total (revenu mensuel fixe + transactions de revenus)
+  const totalIncome = income + monthlyIncome;
+  const totalSavings = totalIncome - expenses;
 
   // Calculer le total économisé pour l'objectif principal
-  const mainGoal = budgetGoals[0];
+  const mainGoal = budgetGoals && budgetGoals.length > 0 ? budgetGoals[0] : null;
   const savingsGoalData = mainGoal ? {
     target: mainGoal.targetAmount,
     current: mainGoal.currentAmount,
@@ -125,7 +138,7 @@ export default function HomePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{formatCurrency(income || monthlyIncome)}</div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{formatCurrency(totalIncome)}</div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Revenu mensuel total
                 </p>
@@ -155,11 +168,11 @@ export default function HomePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className={`text-3xl font-bold mb-1 ${savings >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-600'}`}>
-                  {formatCurrency(savings || (monthlyIncome - expenses))}
+                <div className={`text-3xl font-bold mb-1 ${totalSavings >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-600'}`}>
+                  {formatCurrency(totalSavings)}
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {savings >= 0 ? 'Montant épargné' : 'Déficit'}
+                  {totalSavings >= 0 ? 'Montant épargné' : 'Déficit'}
                 </p>
               </CardContent>
             </Card>
@@ -252,7 +265,11 @@ export default function HomePage() {
                     </p>
                   ) : (
                     currentMonthTransactions
-                      .sort((a, b) => b.date.getTime() - a.date.getTime())
+                      .sort((a, b) => {
+                        const dateA = new Date(a.date);
+                        const dateB = new Date(b.date);
+                        return dateB.getTime() - dateA.getTime();
+                      })
                       .slice(0, 5)
                       .map((transaction) => (
                         <div

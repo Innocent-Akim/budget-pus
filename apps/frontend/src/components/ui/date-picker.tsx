@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@/components/ui/popover"
 
 interface DatePickerProps {
@@ -28,9 +28,12 @@ export function DatePicker({
   disabled = false,
   className
 }: DatePickerProps) {
+  const PopoverComponent = Popover as any;
+  const PopoverTriggerComponent = PopoverTrigger as any;
+  const PopoverContentComponent = PopoverContent as any;
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <PopoverComponent>
+      <PopoverTriggerComponent asChild>
         <Button
           variant="outline"
           className={cn(
@@ -43,8 +46,8 @@ export function DatePicker({
           <CalendarIcon className="mr-2 h-4 w-4" />
           {value ? format(value, "PPP", { locale: fr }) : placeholder}
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      </PopoverTriggerComponent>
+      <PopoverContentComponent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
           selected={value}
@@ -54,7 +57,7 @@ export function DatePicker({
           }
           initialFocus
         />
-      </PopoverContent>
-    </Popover>
+      </PopoverContentComponent>
+    </PopoverComponent>
   )
 }
