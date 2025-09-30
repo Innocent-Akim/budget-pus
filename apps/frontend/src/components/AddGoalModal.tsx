@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
-import { useBudgetStore } from '@/store/useBudgetStore';
+import { useGoals } from '@/hooks/useGoals';
+import { GoalType, GoalStatus } from '@/types/budget';
 import { X } from 'lucide-react';
 
 interface AddGoalModalProps {
@@ -14,7 +15,7 @@ interface AddGoalModalProps {
 }
 
 export function AddGoalModal({ open, onClose }: AddGoalModalProps) {
-  const { addBudgetGoal } = useBudgetStore();
+  const { addGoal } = useGoals();
   
   const [name, setName] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
@@ -25,10 +26,14 @@ export function AddGoalModal({ open, onClose }: AddGoalModalProps) {
     
     if (!name || !targetAmount || !deadline) return;
 
-    addBudgetGoal({
-      name,
+    addGoal({
+      title: name,
       targetAmount: parseFloat(targetAmount),
-      deadline: deadline,
+      targetDate: deadline,
+      type: GoalType.SAVINGS,
+      status: GoalStatus.ACTIVE,
+      currentAmount: 0,
+      isRecurring: false,
     });
 
     // Réinitialiser le formulaire

@@ -9,6 +9,7 @@ async function bootstrap() {
   app.enableCors(appConfig.cors);
   
   const port = appConfig.port;
+  // app.useGlobalPipes(new ValidationPipe());
   await app.listen(port, '0.0.0.0');
   
   console.log(`🚀 API is running on: http://localhost:${port}`);

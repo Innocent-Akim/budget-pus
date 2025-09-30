@@ -4,15 +4,19 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AddTransactionModal } from '@/components/AddTransactionModal';
+import { EditTransactionModal } from '@/components/EditTransactionModal';
+import { TransactionList } from '@/components/TransactionList';
 import { GoalsSection } from '@/components/GoalsSection';
 import { MonthlyHistory } from '@/components/MonthlyHistory';
 import { AnalyticsSection } from '@/components/AnalyticsSection';
 import { SettingsSection } from '@/components/SettingsSection';
 import { NavigationMenu } from '@/components/NavigationMenu';
 import { Header } from '@/components/Header';
-import { GoogleAuth } from '@/components/GoogleAuth';
+import { LoginForm } from '@/components/LoginForm';
 import { useSession } from 'next-auth/react';
-import { useBudgetStore } from '@/store/useBudgetStore';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useGoals } from '@/hooks/useGoals';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatCurrency } from '@/lib/utils';
 import {
   Plus,
@@ -25,16 +29,22 @@ import {
 
 export default function HomePage() {
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
+  const [isEditTransactionOpen, setIsEditTransactionOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
   const [currentSection, setCurrentSection] = useState('dashboard');
   const { data: session, status } = useSession();
   
   const { 
+    transactions,
     getCurrentMonthTransactions, 
     getTotalsByMonth, 
     getExpensesByCategory,
-    budgetGoals,
-    monthlyIncome 
-  } = useBudgetStore();
+    updateTransaction,
+    deleteTransaction
+  } = useTransactions();
+  
+  const { goals: budgetGoals } = useGoals();
+  const { monthlyIncome } = useUserSettings();
 
   // Afficher le formulaire de connexion si l'utilisateur n'est pas connecté
   if (status === 'loading') {
@@ -49,7 +59,7 @@ export default function HomePage() {
   }
 
   if (!session) {
-    return <GoogleAuth />;
+    return <LoginForm />;
   }
 
   const currentDate = new Date();
@@ -69,6 +79,21 @@ export default function HomePage() {
   const savingsPercentage = savingsGoalData 
     ? Math.min((savingsGoalData.current / savingsGoalData.target) * 100, 100)
     : 0;
+
+  // Fonctions de gestion des transactions
+  const handleEditTransaction = (transaction: any) => {
+    setEditingTransaction(transaction);
+    setIsEditTransactionOpen(true);
+  };
+
+  const handleDeleteTransaction = (transactionId: string) => {
+    deleteTransaction(transactionId);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingTransaction(null);
+    setIsEditTransactionOpen(false);
+  };
 
   return (
     <div className="min-h-screen">
@@ -274,6 +299,16 @@ export default function HomePage() {
           </div>
         )}
 
+        {currentSection === 'transactions' && (
+          <div className="space-y-8">
+            <TransactionList 
+              transactions={transactions}
+              onEdit={handleEditTransaction}
+              onDelete={handleDeleteTransaction}
+            />
+          </div>
+        )}
+
         {currentSection === 'analytics' && (
           <div className="space-y-8">
             <AnalyticsSection />
@@ -313,6 +348,12 @@ export default function HomePage() {
       <AddTransactionModal 
         open={isAddTransactionOpen} 
         onClose={() => setIsAddTransactionOpen(false)}
+      />
+
+      <EditTransactionModal 
+        transaction={editingTransaction}
+        open={isEditTransactionOpen} 
+        onClose={handleCloseEditModal}
       />
     </div>
   );

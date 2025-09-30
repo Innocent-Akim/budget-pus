@@ -4,13 +4,13 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  LogIn,
-  UserPlus,
-  Chrome
+    Mail,
+    Lock,
+    Eye,
+    EyeOff,
+    LogIn,
+    UserPlus,
+    Chrome
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -34,14 +34,19 @@ export function GoogleAuth() {
     setError('');
 
     try {
-      // Simulation d'une API de connexion
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Vérification simple (en production, ceci serait fait côté serveur)
-      const users = JSON.parse(localStorage.getItem('budget-users') || '[]');
-      const user = users.find((u: any) => u.email === email && u.password === password);
-      
-      if (!user) {
+      // Utiliser l'API d'authentification
+      const response = await fetch('/api/auth/signin/credentials', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
         throw new Error('Email ou mot de passe incorrect');
       }
 
@@ -65,28 +70,23 @@ export function GoogleAuth() {
         return;
       }
 
-      // Simulation d'une API d'inscription
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Vérifier si l'utilisateur existe déjà
-      const users = JSON.parse(localStorage.getItem('budget-users') || '[]');
-      const existingUser = users.find((u: any) => u.email === email);
-      
-      if (existingUser) {
-        throw new Error('Un compte avec cet email existe déjà');
+      // Utiliser l'API d'inscription
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          name: email.split('@')[0],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erreur lors de l\'inscription');
       }
-
-      // Créer un nouvel utilisateur
-      const newUser = {
-        id: Date.now().toString(),
-        email,
-        password,
-        name: email.split('@')[0],
-        createdAt: new Date().toISOString()
-      };
-
-      users.push(newUser);
-      localStorage.setItem('budget-users', JSON.stringify(users));
 
       // Redirection après inscription réussie
       window.location.href = '/';

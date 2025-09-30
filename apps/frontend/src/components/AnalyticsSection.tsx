@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useBudgetStore } from '@/store/useBudgetStore';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatCurrency } from '@/lib/utils';
 import {
     TrendingUp,
@@ -22,9 +23,10 @@ export function AnalyticsSection() {
     transactions, 
     getTransactionsByMonth, 
     getTotalsByMonth, 
-    getExpensesByCategory,
-    monthlyIncome 
-  } = useBudgetStore();
+    getExpensesByCategory
+  } = useTransactions();
+  
+  const { monthlyIncome } = useUserSettings();
 
   const [selectedPeriod, setSelectedPeriod] = useState('6'); // 6 derniers mois par défaut
 

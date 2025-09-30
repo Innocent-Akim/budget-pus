@@ -9,7 +9,8 @@ import {
     Calendar,
     Settings,
     Menu,
-    X
+    X,
+    CreditCard
 } from 'lucide-react';
 
 interface NavigationMenuProps {
@@ -22,6 +23,7 @@ export function NavigationMenu({ currentSection = 'dashboard', onSectionChange }
 
   const menuItems = [
     { id: 'dashboard', label: 'Tableau de bord', icon: Home },
+    { id: 'transactions', label: 'Transactions', icon: CreditCard },
     { id: 'analytics', label: 'Analyses', icon: BarChart3 },
     { id: 'goals', label: 'Objectifs', icon: Target },
     { id: 'history', label: 'Historique', icon: Calendar },

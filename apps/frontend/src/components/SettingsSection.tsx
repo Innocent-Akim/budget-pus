@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useBudgetStore } from '@/store/useBudgetStore';
+import { useUserSettings } from '@/hooks/useUserSettings';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useGoals } from '@/hooks/useGoals';
 import { useTheme } from 'next-themes';
 import {
     User, Shield,
@@ -18,24 +20,30 @@ import {
 
 export function SettingsSection() {
   const { theme, setTheme } = useTheme();
-  const { monthlyIncome, setMonthlyIncome, clearAllData } = useBudgetStore();
+  const { monthlyIncome, updateMonthlyIncome } = useUserSettings();
+  const { transactions, deleteTransaction } = useTransactions();
+  const { goals, deleteGoal } = useGoals();
   const [income, setIncome] = useState(monthlyIncome?.toString() || '');
   const [notifications, setNotifications] = useState(true);
   const [autoBackup, setAutoBackup] = useState(false);
 
-  const handleSaveIncome = () => {
+  const handleSaveIncome = async () => {
     const incomeValue = parseFloat(income);
     if (!isNaN(incomeValue) && incomeValue >= 0) {
-      setMonthlyIncome(incomeValue);
+      try {
+        await updateMonthlyIncome(incomeValue);
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour du revenu:', error);
+      }
     }
   };
 
   const handleExportData = () => {
     const data = {
       monthlyIncome,
-      budgetGoals: JSON.parse(localStorage.getItem('budgetGoals') || '[]'),
-      transactions: JSON.parse(localStorage.getItem('transactions') || '[]'),
-      categories: JSON.parse(localStorage.getItem('categories') || '[]'),
+      budgetGoals: goals,
+      transactions: transactions,
+      categories: [], // Les catégories sont maintenant gérées côté API
     };
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -53,14 +61,15 @@ export function SettingsSection() {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const data = JSON.parse(e.target?.result as string);
-          if (data.monthlyIncome) setMonthlyIncome(data.monthlyIncome);
-          if (data.budgetGoals) localStorage.setItem('budgetGoals', JSON.stringify(data.budgetGoals));
-          if (data.transactions) localStorage.setItem('transactions', JSON.stringify(data.transactions));
-          if (data.categories) localStorage.setItem('categories', JSON.stringify(data.categories));
-          window.location.reload();
+          if (data.monthlyIncome) {
+            await updateMonthlyIncome(data.monthlyIncome);
+          }
+          // Note: L'importation des transactions et objectifs nécessiterait des endpoints spécifiques
+          // Pour l'instant, on affiche juste un message
+          alert('Importation partielle réussie. Les transactions et objectifs ne peuvent pas être importés automatiquement.');
         } catch (error) {
           alert('Erreur lors de l\'importation du fichier');
         }
@@ -69,10 +78,24 @@ export function SettingsSection() {
     }
   };
 
-  const handleClearAllData = () => {
+  const handleClearAllData = async () => {
     if (confirm('Êtes-vous sûr de vouloir supprimer toutes les données ? Cette action est irréversible.')) {
-      clearAllData();
-      window.location.reload();
+      try {
+        // Supprimer toutes les transactions
+        for (const transaction of transactions) {
+          await deleteTransaction(transaction.id);
+        }
+        // Supprimer tous les objectifs
+        for (const goal of goals) {
+          await deleteGoal(goal.id);
+        }
+        // Réinitialiser le revenu mensuel
+        await updateMonthlyIncome(0);
+        alert('Toutes les données ont été supprimées avec succès.');
+      } catch (error) {
+        console.error('Erreur lors de la suppression des données:', error);
+        alert('Erreur lors de la suppression des données.');
+      }
     }
   };
 

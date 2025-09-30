@@ -1,44 +1,91 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
 import {
-    Mail,
-    Lock,
-    Eye,
-    EyeOff,
-    LogIn,
-    UserPlus
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  LogIn,
+  UserPlus
 } from 'lucide-react';
+import { useState } from 'react';
+import { signIn, signOut, useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export function LoginForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [authError, setAuthError] = useState('');
   
-  const { login, register } = useAuth();
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setAuthError('');
 
     try {
       if (isLogin) {
-        await login(email, password);
+        // Connexion avec NextAuth (qui utilise l'API backend)
+        const result = await signIn('credentials', {
+          email,
+          password,
+          redirect: false,
+        });
+
+        if (result?.error) {
+          setError('Email ou mot de passe incorrect');
+        } else if (result?.ok) {
+          router.push('/');
+        }
       } else {
         if (password !== confirmPassword) {
           setError('Les mots de passe ne correspondent pas');
           return;
         }
-        await register(email, password);
+        if (!name.trim()) {
+          setError('Le nom est requis');
+          return;
+        }
+        
+        // Inscription via l'API backend
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
+        const response = await fetch(`${apiUrl}/auth/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name, email, password }),
+        });
+
+        if (response.ok) {
+          // Après inscription réussie, connecter l'utilisateur avec NextAuth
+          const result = await signIn('credentials', {
+            email,
+            password,
+            redirect: false,
+          });
+
+          if (result?.ok) {
+            router.push('/');
+          } else if (result?.error) {
+            setError('Inscription réussie, mais erreur de connexion automatique');
+          }
+        } else {
+          const errorData = await response.json();
+          setError(errorData.message || 'Erreur lors de l\'inscription');
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
@@ -50,10 +97,59 @@ export function LoginForm() {
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setError('');
+    setAuthError('');
     setEmail('');
     setPassword('');
     setConfirmPassword('');
+    setName('');
   };
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push('/auth/signin');
+  };
+
+  // Si l'utilisateur est connecté, afficher le profil
+  if (session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <Card className="border-0 shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-t-2xl">
+              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white text-center">
+                Bienvenue !
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-300 text-center">
+                Vous êtes connecté en tant que {session.user?.name}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Email: {session.user?.email}
+                  </p>
+                </div>
+                <Button
+                  onClick={() => router.push('/')}
+                  className="w-full gradient-primary"
+                >
+                  Aller au tableau de bord
+                </Button>
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Se déconnecter
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
@@ -87,9 +183,28 @@ export function LoginForm() {
           </CardHeader>
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
+              {(error || authError) && (
                 <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">{error || authError}</p>
+                </div>
+              )}
+
+              {!isLogin && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Nom complet
+                  </label>
+                  <div className="relative">
+                    <UserPlus className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Votre nom complet"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
                 </div>
               )}
 
@@ -169,6 +284,47 @@ export function LoginForm() {
                     {isLogin ? 'Se connecter' : 'Créer le compte'}
                   </div>
                 )}
+              </Button>
+
+              {/* Séparateur */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-gray-300 dark:border-gray-600" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white dark:bg-gray-900 px-2 text-gray-500 dark:text-gray-400">
+                    Ou continuer avec
+                  </span>
+                </div>
+              </div>
+
+              {/* Bouton Google */}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => signIn('google', { redirect: false })}
+                disabled={isLoading}
+              >
+                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                  <path
+                    fill="currentColor"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="currentColor"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="currentColor"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  />
+                  <path
+                    fill="currentColor"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  />
+                </svg>
+                Continuer avec Google
               </Button>
             </form>
 
