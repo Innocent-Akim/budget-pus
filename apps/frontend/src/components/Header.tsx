@@ -119,10 +119,11 @@ export function Header({ currentSection, onSectionChange }: HeaderProps) {
   return (
     <header className="glass sticky top-0 z-40 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex items-center h-16">
           
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full" ref={searchRef}>
+          {/* Barre de recherche - centrée sur desktop */}
+          <div className="hidden md:flex flex-1 justify-center">
+            <div className="relative w-full max-w-md" ref={searchRef}>
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
@@ -185,8 +186,8 @@ export function Header({ currentSection, onSectionChange }: HeaderProps) {
             </div>
           </div>
 
-          {/* Actions utilisateur */}
-          <div className="flex items-center gap-2">
+          {/* Actions utilisateur - toujours à droite */}
+          <div className="flex items-center gap-2 ml-auto">
             {/* Notifications */}
             <div className="relative" ref={notificationsRef}>
               <Button
@@ -205,7 +206,12 @@ export function Header({ currentSection, onSectionChange }: HeaderProps) {
               
               {/* Menu des notifications */}
               {isNotificationsOpen && (
-                <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                <>
+                  {/* Overlay pour mobile */}
+                  <div className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden" onClick={() => setIsNotificationsOpen(false)} />
+                  
+                  <div className="fixed inset-0 flex items-start justify-center pt-20 p-4 z-50 sm:absolute sm:top-full sm:left-1/2 sm:transform sm:-translate-x-1/2 sm:mt-2 sm:inset-auto sm:p-0">
+                    <div className="w-full max-w-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg sm:w-80">
                   <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
@@ -242,12 +248,14 @@ export function Header({ currentSection, onSectionChange }: HeaderProps) {
                       </div>
                     ))}
                   </div>
-                  <div className="p-3 border-t border-gray-200 dark:border-gray-700">
-                    <Button variant="outline" className="w-full text-sm">
-                      Voir toutes les notifications
-                    </Button>
+                    <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+                      <Button variant="outline" className="w-full text-sm">
+                        Voir toutes les notifications
+                      </Button>
+                    </div>
                   </div>
                 </div>
+                </>
               )}
             </div>
 
@@ -436,8 +444,25 @@ export function Header({ currentSection, onSectionChange }: HeaderProps) {
 
         {/* Menu mobile */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 dark:border-gray-700 py-4">
-            <div className="space-y-2">
+          <>
+            {/* Overlay pour mobile */}
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />
+            
+            <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 z-50 lg:hidden transform transition-transform duration-300 ease-in-out">
+              {/* Header du menu mobile */}
+              <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Menu</h2>
+                <Button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                >
+                  <FaTimes className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="px-4 py-6 space-y-4">
               {/* Navigation rapide */}
               <div className="grid grid-cols-2 gap-2">
                 {quickSections.map((section) => (
@@ -486,7 +511,8 @@ export function Header({ currentSection, onSectionChange }: HeaderProps) {
                 </Button>
               </div>
             </div>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </header>
