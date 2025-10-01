@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { goalsService } from '@/services/goals.service';
 import { Goal, GoalStatus } from '@/types/budget';
+import { toast } from 'sonner';
 
 export function useGoals() {
   const { data: session } = useSession();
@@ -44,9 +45,10 @@ export function useGoals() {
       queryClient.setQueryData(['goals', session?.user?.id], (old: Goal[] = []) => {
         return [newGoal, ...old];
       });
+      toast.success('Objectif ajouté avec succès');
     },
     onError: (error) => {
-      console.error('❌ Error adding goal:', error);
+      toast.error('Erreur lors de l\'ajout de l\'objectif');
     }
   });
 
@@ -60,15 +62,17 @@ export function useGoals() {
         targetDate: goal.targetDate?.toISOString().split('T')[0],
         recurringEndDate: goal.recurringEndDate?.toISOString().split('T')[0],
       };
+
       return await goalsService.updateGoal(id, goalData);
     },
     onSuccess: (updatedGoal) => {
       queryClient.setQueryData(['goals', session?.user?.id], (old: Goal[] = []) => {
         return old.map(g => g.id === updatedGoal.id ? updatedGoal : g);
       });
+      toast.success('Objectif mis à jour avec succès');
     },
     onError: (error) => {
-      console.error('❌ Error updating goal:', error);
+      toast.error('Erreur lors de la mise à jour de l\'objectif');
     }
   });
 
@@ -82,9 +86,10 @@ export function useGoals() {
       queryClient.setQueryData(['goals', session?.user?.id], (old: Goal[] = []) => {
         return old.filter(g => g.id !== deletedId);
       });
+      toast.success('Objectif supprimé avec succès');
     },
     onError: (error) => {
-      console.error('❌ Error deleting goal:', error);
+      toast.error('Erreur lors de la suppression de l\'objectif');
     }
   });
 
@@ -98,9 +103,12 @@ export function useGoals() {
       queryClient.setQueryData(['goals', session?.user?.id], (old: Goal[] = []) => {
         return old.map(g => g.id === updatedGoal.id ? updatedGoal : g);
       });
+      toast.success('Objectif mis à jour avec succès');
     },
     onError: (error) => {
-      console.error('❌ Error contributing to goal:', error);
+      toast.error('Erreur lors de la contribution à l\'objectif', {
+        description: error.message
+      });
     }
   });
 
@@ -114,9 +122,12 @@ export function useGoals() {
       queryClient.setQueryData(['goals', session?.user?.id], (old: Goal[] = []) => {
         return old.map(g => g.id === updatedGoal.id ? updatedGoal : g);
       });
+      toast.success('Objectif finalisé avec succès');
     },
     onError: (error) => {
-      console.error('❌ Error completing goal:', error);
+      toast.error('Erreur lors de la finalisation de l\'objectif', {
+        description: error.message
+      });
     }
   });
 

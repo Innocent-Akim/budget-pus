@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { userService } from '@/services/user.service';
+import { toast } from 'sonner';
 
 export function useUserSettings() {
   const { data: session } = useSession();
@@ -45,9 +46,12 @@ export function useUserSettings() {
         ...old,
         monthlyIncome: income
       }));
+      toast.success('Revenu mensuel mis à jour avec succès');
     },
     onError: (error) => {
-      console.error('❌ Error updating monthly income:', error);
+      toast.error('Erreur lors de la mise à jour du revenu mensuel', {
+        description: error.message
+      });
     }
   });
 

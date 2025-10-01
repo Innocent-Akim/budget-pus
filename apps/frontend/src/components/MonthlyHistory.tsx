@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatCurrency, formatMonth, getMonthKey } from '@/lib/utils';
+import { TransactionType } from '@/types/budget';
 import { IoArrowBack, IoArrowForward, IoCalendar, IoTrendingUp, IoTrendingDown } from 'react-icons/io5';
 import type { IconType } from 'react-icons';
 
@@ -22,8 +23,11 @@ export function MonthlyHistory() {
   const { income, expenses, savings } = getTotalsByMonth(currentMonthKey);
   const transactions = getTransactionsByMonth(currentMonthKey);
   
-  // Calculer le revenu total (revenu mensuel fixe + transactions de revenus)
-  const totalIncome = income + monthlyIncome;
+  // Calculer le revenu total (utiliser soit les revenus des transactions, soit le revenu mensuel fixe)
+  // Éviter le double comptage si l'utilisateur a déjà enregistré son salaire
+  const safeMonthlyIncome = Number(monthlyIncome) || 0;
+  const hasIncomeTransactions = income > 0;
+  const totalIncome = hasIncomeTransactions ? income : safeMonthlyIncome;
   const totalSavings = totalIncome - expenses;
 
   const goToPreviousMonth = () => {
@@ -155,11 +159,11 @@ export function MonthlyHistory() {
                   >
                     <div className="flex items-center space-x-3">
                       <div className={`p-2 rounded-lg ${
-                        transaction.type === 'income' 
+                        transaction.type === TransactionType.INCOME   
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-600' 
                           : 'bg-red-100 dark:bg-red-900/30 text-red-600'
                       }`}>
-                        {transaction.type === 'income' ? (
+                        {transaction.type === TransactionType.INCOME ? (
                           <Icon icon={IoTrendingUp} className="h-4 w-4" />
                         ) : (
                           <Icon icon={IoTrendingDown} className="h-4 w-4" />
@@ -175,9 +179,9 @@ export function MonthlyHistory() {
                       </div>
                     </div>
                     <div className={`text-sm font-semibold ${
-                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                      transaction.type === TransactionType.INCOME ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                      {transaction.type === TransactionType.INCOME ? '+' : '-'}{formatCurrency(transaction.amount)}
                     </div>
                   </div>
                 ))}

@@ -7,9 +7,7 @@ import {
   BarChart3,
   Target,
   Calendar,
-  Settings,
-  Menu,
-  X,
+  Settings, X,
   Wallet
 } from 'lucide-react';
 
@@ -38,20 +36,7 @@ export function NavigationMenu({ currentSection = 'dashboard', onSectionChange }
   return (
     <>
       {/* Mobile menu button */}
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden h-10 w-10 rounded-lg border-gray-200 dark:border-gray-700 
-                   bg-white/90 dark:bg-gray-800/90 
-                   hover:bg-blue-50 dark:hover:bg-blue-900/20
-                   hover:border-blue-300 dark:hover:border-blue-700
-                   text-gray-600 dark:text-gray-400
-                   hover:text-blue-600 dark:hover:text-blue-400
-                   transition-all duration-200"
-      >
-        {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-      </Button>
+    
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:block fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 z-30">

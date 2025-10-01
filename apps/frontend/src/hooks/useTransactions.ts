@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { transactionsService } from '@/services/transactions.service';
 import { Transaction, TransactionType } from '@/types/budget';
+import { toast } from 'sonner';
 
 export function useTransactions() {
   const { data: session } = useSession();
@@ -57,9 +58,12 @@ export function useTransactions() {
       queryClient.setQueryData(['transactions', session?.user?.id], (old: Transaction[] = []) => {
         return [newTransaction, ...old];
       });
+      toast.success('Transaction ajoutée avec succès');
     },
     onError: (error) => {
-      console.error('❌ Error adding transaction:', error);
+      toast.error('Erreur lors de l\'ajout de la transaction', {
+        description: error.message
+      });
     }
   });
 
@@ -80,9 +84,12 @@ export function useTransactions() {
       queryClient.setQueryData(['transactions', session?.user?.id], (old: Transaction[] = []) => {
         return old.map(t => t.id === updatedTransaction.id ? updatedTransaction : t);
       });
+      toast.success('Transaction mise à jour avec succès');
     },
     onError: (error) => {
-      console.error('❌ Error updating transaction:', error);
+      toast.error('Erreur lors de la mise à jour de la transaction', {
+        description: error.message
+      });
     }
   });
 
@@ -97,9 +104,12 @@ export function useTransactions() {
       queryClient.setQueryData(['transactions', session?.user?.id], (old: Transaction[] = []) => {
         return old.filter(t => t.id !== deletedId);
       });
+      toast.success('Transaction supprimée avec succès');
     },
     onError: (error) => {
-      console.error('❌ Error deleting transaction:', error);
+      toast.error('Erreur lors de la suppression de la transaction', {
+        description: error.message
+      });
     }
   });
 
@@ -142,11 +152,11 @@ export function useTransactions() {
     
     const income = monthTransactions
       .filter(t => t.type === TransactionType.INCOME)
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
     
     const expenses = monthTransactions
       .filter(t => t.type === TransactionType.EXPENSE)
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
     
     const savings = income - expenses;
     
@@ -160,7 +170,8 @@ export function useTransactions() {
     const expensesByCategory: Record<string, number> = {};
     expenses.forEach(transaction => {
       const category = transaction.category;
-      expensesByCategory[category] = (expensesByCategory[category] || 0) + transaction.amount;
+      const amount = Number(transaction.amount) || 0;
+      expensesByCategory[category] = (expensesByCategory[category] || 0) + amount;
     });
     
     return expensesByCategory;

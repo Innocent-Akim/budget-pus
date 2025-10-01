@@ -13,6 +13,7 @@ import {
   EXPENSE_CATEGORIES
 } from '@/types/budget';
 import { useTransactions } from '@/hooks/useTransactions';
+import { FaSpinner } from 'react-icons/fa';
 
 interface AddTransactionModalProps {
   open: boolean;
@@ -20,7 +21,7 @@ interface AddTransactionModalProps {
 }
 
 export function AddTransactionModal({ open, onClose }: AddTransactionModalProps) {
-  const { addTransaction } = useTransactions();
+  const { addTransaction, isAdding } = useTransactions();
   
   // État du stepper
   const [currentStep, setCurrentStep] = useState(1);
@@ -177,7 +178,7 @@ export function AddTransactionModal({ open, onClose }: AddTransactionModalProps)
           disabled={!canProceed}
           className="flex-1"
         >
-          Ajouter
+         {isAdding ? <FaSpinner className="h-4 w-4 animate-spin" /> : 'Ajouter'}
         </Button>
       )}
     </div>

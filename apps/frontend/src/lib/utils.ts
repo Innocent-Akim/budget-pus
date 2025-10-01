@@ -7,10 +7,12 @@ export function cn(...inputs: ClassValue[]) {
 
 // Format currency
 export function formatCurrency(amount: number): string {
+  // Handle NaN, undefined, null, or invalid numbers
+  const safeAmount = Number(amount) || 0;
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: 'EUR',
-  }).format(amount)
+  }).format(safeAmount)
 }
 
 // Format month

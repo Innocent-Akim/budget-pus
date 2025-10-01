@@ -21,7 +21,6 @@ import { UserModule } from './user/user.module';
     GoalsModule,
     UserModule
   ],
-  controllers: [],
-  providers: [ ],
+
 })
 export class AppModule {}

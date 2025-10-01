@@ -45,50 +45,81 @@ export function LoginForm() {
         });
 
         if (result?.error) {
-          setError('Email ou mot de passe incorrect');
+          // Gestion des erreurs spécifiques
+          if (result.error === 'CredentialsSignin') {
+            setError('Email ou mot de passe incorrect');
+          } else if (result.error === 'Configuration') {
+            setError('Erreur de configuration du serveur');
+          } else if (result.error === 'AccessDenied') {
+            setError('Accès refusé');
+          } else if (result.error.includes('ECONNREFUSED') || result.error.includes('fetch')) {
+            setError('Impossible de se connecter au serveur. Vérifiez votre connexion internet.');
+          } else {
+            setError('Erreur de connexion: ' + result.error);
+          }
         } else if (result?.ok) {
           router.push('/');
         }
       } else {
         if (password !== confirmPassword) {
           setError('Les mots de passe ne correspondent pas');
+          setIsLoading(false);
           return;
         }
         if (!name.trim()) {
           setError('Le nom est requis');
+          setIsLoading(false);
           return;
         }
         
         // Inscription via l'API backend
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
-        const response = await fetch(`${apiUrl}/auth/register`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ name, email, password }),
-        });
-
-        if (response.ok) {
-          // Après inscription réussie, connecter l'utilisateur avec NextAuth
-          const result = await signIn('credentials', {
-            email,
-            password,
-            redirect: false,
+        
+        try {
+          const response = await fetch(`${apiUrl}/auth/register`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, email, password }),
           });
 
-          if (result?.ok) {
-            router.push('/');
-          } else if (result?.error) {
-            setError('Inscription réussie, mais erreur de connexion automatique');
+          if (response.ok) {
+            // Après inscription réussie, connecter l'utilisateur avec NextAuth
+            const result = await signIn('credentials', {
+              email,
+              password,
+              redirect: false,
+            });
+
+            if (result?.ok) {
+              router.push('/');
+            } else if (result?.error) {
+              setError('Inscription réussie, mais erreur de connexion automatique');
+            }
+          } else {
+            const errorData = await response.json();
+            setError(errorData.message || 'Erreur lors de l\'inscription');
           }
-        } else {
-          const errorData = await response.json();
-          setError(errorData.message || 'Erreur lors de l\'inscription');
+        } catch (fetchError) {
+          if (fetchError instanceof TypeError && fetchError.message.includes('fetch')) {
+            setError('Impossible de se connecter au serveur. Vérifiez que l\'API est démarrée.');
+          } else {
+            setError('Erreur de connexion au serveur');
+          }
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+      console.error('Erreur lors de la connexion:', err);
+      if (err instanceof Error) {
+        if (err.message.includes('ECONNREFUSED') || err.message.includes('fetch')) {
+          setError('Impossible de se connecter au serveur. Vérifiez votre connexion internet.');
+        } else {
+          setError('Erreur: ' + err.message);
+        }
+      } else {
+        setError('Une erreur inattendue est survenue');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -185,7 +216,13 @@ export function LoginForm() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {(error || authError) && (
                 <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                  <p className="text-sm text-red-600 dark:text-red-400">{error || authError}</p>
+                  <p className="text-sm text-red-600 dark:text-red-400 mb-2">{error || authError}</p>
+                  {(error?.includes('Impossible de se connecter') || error?.includes('serveur')) && (
+                    <div className="text-xs text-red-500 dark:text-red-400">
+                      <p>L'API semble indisponible. Vérifiez que le serveur backend est démarré.</p>
+                      <p className="mt-1">Vous pouvez essayer de vous connecter plus tard ou contacter l'administrateur.</p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -268,23 +305,40 @@ export function LoginForm() {
                 </div>
               )}
 
-              <Button
-                type="submit"
-                className="w-full gradient-primary"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    {isLogin ? 'Connexion...' : 'Création...'}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    {isLogin ? <LogIn className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                    {isLogin ? 'Se connecter' : 'Créer le compte'}
-                  </div>
+              <div className="space-y-2">
+                <Button
+                  type="submit"
+                  className="w-full gradient-primary"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      {isLogin ? 'Connexion...' : 'Création...'}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {isLogin ? <LogIn className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                      {isLogin ? 'Se connecter' : 'Créer le compte'}
+                    </div>
+                  )}
+                </Button>
+                
+                {/* Bouton réessayer en cas d'erreur de connexion */}
+                {(error?.includes('Impossible de se connecter') || error?.includes('serveur')) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setError('');
+                      setAuthError('');
+                    }}
+                  >
+                    Réessayer
+                  </Button>
                 )}
-              </Button>
+              </div>
 
               {/* Séparateur */}
               <div className="relative">

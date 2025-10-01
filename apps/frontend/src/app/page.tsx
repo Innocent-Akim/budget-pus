@@ -10,7 +10,6 @@ import { GoalsSection } from '@/components/GoalsSection';
 import { MonthlyHistory } from '@/components/MonthlyHistory';
 import { AnalyticsSection } from '@/components/AnalyticsSection';
 import { SettingsSection } from '@/components/SettingsSection';
-import { NavigationMenu } from '@/components/NavigationMenu';
 import { Header } from '@/components/Header';
 import { LoginForm } from '@/components/LoginForm';
 import { useSession } from 'next-auth/react';
@@ -18,6 +17,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useGoals } from '@/hooks/useGoals';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatCurrency } from '@/lib/utils';
+import { TransactionType } from '@/types/budget';
 import {
   Plus,
   TrendingUp,
@@ -26,6 +26,7 @@ import {
   Target,
   BarChart3
 } from 'lucide-react';
+import { NavigationMenu } from '@/components/NavigationMenu';
 
 export default function HomePage() {
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
@@ -78,8 +79,11 @@ export default function HomePage() {
   const { income, expenses, savings } = getTotalsByMonth(currentMonthKey);
   const expensesByCategory = getExpensesByCategory(currentMonthKey);
   
-  // Calculer le revenu total (revenu mensuel fixe + transactions de revenus)
-  const totalIncome = income + monthlyIncome;
+  // Calculer le revenu total (utiliser soit les revenus des transactions, soit le revenu mensuel fixe)
+  // Éviter le double comptage si l'utilisateur a déjà enregistré son salaire
+  const safeMonthlyIncome = Number(monthlyIncome) || 0;
+  const hasIncomeTransactions = income > 0;
+  const totalIncome = hasIncomeTransactions ? income : safeMonthlyIncome;
   const totalSavings = totalIncome - expenses;
 
   // Calculer le total économisé pour l'objectif principal
@@ -111,7 +115,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Sidebar */}
-      <NavigationMenu 
+      <NavigationMenu
         currentSection={currentSection} 
         onSectionChange={setCurrentSection} 
       />
@@ -231,10 +235,10 @@ export default function HomePage() {
                         <div key={category} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                           <div className="flex items-center gap-3">
                             <div className={`w-4 h-4 rounded ${gradients[index % gradients.length]}`} />
-                            <span className="font-medium text-gray-900 dark:text-white">{category}</span>
+                            <span className="font-medium text-gray-900 dark:text-white capitalize">{category}</span>
                           </div>
                           <div className="text-right">
-                            <div className="font-semibold text-gray-900 dark:text-white">{formatCurrency(amount)}</div>
+                            <div className="font-semibold text-gray-900 dark:text-white capitalize">{formatCurrency(amount)}</div>
                             <div className="text-sm text-gray-500 dark:text-gray-400">{percentage.toFixed(1)}%</div>
                           </div>
                         </div>
@@ -278,11 +282,11 @@ export default function HomePage() {
                         >
                           <div className="flex items-center gap-3">
                             <div className={`p-2 rounded ${
-                              transaction.type === 'income' 
+                              transaction.type === TransactionType.INCOME 
                                 ? 'gradient-success' 
                                 : 'gradient-danger'
                             }`}>
-                              {transaction.type === 'income' ? (
+                              {transaction.type === TransactionType.INCOME ? (
                                 <TrendingUp className="h-4 w-4 text-white" />
                               ) : (
                                 <TrendingDown className="h-4 w-4 text-white" />
@@ -296,9 +300,9 @@ export default function HomePage() {
                             </div>
                           </div>
                           <div className={`font-semibold ${
-                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                            transaction.type === TransactionType.INCOME ? 'text-green-600' : 'text-red-600'
                           }`}>
-                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                            {transaction.type === TransactionType.INCOME ? '+' : '-'}{formatCurrency(transaction.amount)}
                           </div>
                         </div>
                       ))

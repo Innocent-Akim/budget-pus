@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User } from '../entities/user.entity';
-import { Transaction } from '../entities/transaction.entity';
+import { Transaction, TransactionType } from '../entities/transaction.entity';
 import { Goal } from '../entities/goal.entity';
 
 @Injectable()
@@ -117,11 +117,11 @@ export class DatabaseService {
     const transactions = await query.getMany();
 
     const income = transactions
-      .filter(t => t.type === 'income')
+      .filter(t => t.type === TransactionType.INCOME)
       .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
     const expenses = transactions
-      .filter(t => t.type === 'expense')
+      .filter(t => t.type === TransactionType.EXPENSE)
       .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
     return {
