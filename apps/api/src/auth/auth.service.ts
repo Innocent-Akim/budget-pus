@@ -7,6 +7,7 @@ import { User } from '../entities/user.entity';
 import { Account } from '../entities/accounts.entity';
 import { Session } from '../entities/session.entity';
 import { VerificationRequest } from '../entities/verification-request.entity';
+import { EmailService } from '../services/email.service';
 
 export interface LoginDto {
   email: string;
@@ -43,6 +44,7 @@ export class AuthService {
     @InjectRepository(VerificationRequest)
     private verificationRequestRepository: Repository<VerificationRequest>,
     private jwtService: JwtService,
+    private emailService: EmailService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
@@ -60,6 +62,7 @@ export class AuthService {
       email,
       password: hashedPassword,
       emailVerified: new Date(),
+      lastLoginAt: null, // Explicitement défini à null pour la première connexion
     });
 
     const savedUser = await this.userRepository.save(user);
@@ -111,6 +114,24 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Email ou mot de passe incorrect');
+    }
+
+    // Vérifier si c'est la première connexion
+    const isFirstLogin = !user.lastLoginAt;
+    
+    // Mettre à jour la dernière connexion
+    user.lastLoginAt = new Date();
+    await this.userRepository.save(user);
+
+    // Envoyer un email de bienvenue si c'est la première connexion
+    if (isFirstLogin) {
+      try {
+        await this.emailService.sendWelcomeEmail(user.email, user.name);
+        console.log(`🎉 Email de bienvenue envoyé à ${user.email} pour sa première connexion`);
+      } catch (error) {
+        console.error('Erreur lors de l\'envoi de l\'email de bienvenue:', error);
+        // Ne pas bloquer la connexion si l'email échoue
+      }
     }
 
     const payload = { sub: user.id, email: user.email };
@@ -195,6 +216,7 @@ export class AuthService {
       const { name, email, image, providerId } = googleData;
 
       let user = await this.userRepository.findOne({ where: { email } });
+      let isFirstLogin = false;
     
       if (!user) {
         user = this.userRepository.create({
@@ -202,10 +224,28 @@ export class AuthService {
           email,
           image,
           emailVerified: new Date(),
-
-          
+          lastLoginAt: new Date(),
         });
         user = await this.userRepository.save(user);
+        isFirstLogin = true;
+      } else {
+        // Vérifier si c'est la première connexion
+        isFirstLogin = !user.lastLoginAt;
+        
+        // Mettre à jour la dernière connexion
+        user.lastLoginAt = new Date();
+        await this.userRepository.save(user);
+      }
+
+      // Envoyer un email de bienvenue si c'est la première connexion
+      if (isFirstLogin) {
+        try {
+          await this.emailService.sendWelcomeEmail(user.email, user.name);
+          console.log(`🎉 Email de bienvenue envoyé à ${user.email} pour sa première connexion Google`);
+        } catch (error) {
+          console.error('Erreur lors de l\'envoi de l\'email de bienvenue:', error);
+          // Ne pas bloquer la connexion si l'email échoue
+        }
       }
 
       const payload = { sub: user.id, email: user.email };

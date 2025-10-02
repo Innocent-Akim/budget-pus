@@ -14,6 +14,7 @@ import {
 import { useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { emailService } from '@/services/email.service';
 
 export function LoginForm() {
   const [isLogin, setIsLogin] = useState(true);
@@ -58,7 +59,38 @@ export function LoginForm() {
             setError('Erreur de connexion: ' + result.error);
           }
         } else if (result?.ok) {
+          // Rediriger d'abord, puis vérifier la première connexion
           router.push('/');
+          
+          // Vérifier si c'est une première connexion après redirection
+          // On utilise un setTimeout pour laisser le temps à la session de se mettre à jour
+          setTimeout(async () => {
+            try {
+              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
+              // Utiliser les cookies de session pour l'authentification
+              const userResponse = await fetch(`${apiUrl}/auth/me`, {
+                credentials: 'include'
+              });
+              
+              if (userResponse.ok) {
+                const userData = await userResponse.json();
+                // Si lastLoginAt est null ou undefined, c'est une première connexion
+                if (userData.lastLoginAt === null || userData.lastLoginAt === undefined) {
+                  console.log('Première connexion détectée, envoi de l\'email de bienvenue...');
+                  try {
+                    await emailService.sendWelcomeEmail(userData.email, userData.name);
+                    console.log('Email de bienvenue envoyé avec succès');
+                  } catch (emailError) {
+                    console.error('Erreur lors de l\'envoi de l\'email de bienvenue:', emailError);
+                    // Ne pas bloquer la connexion si l'email échoue
+                  }
+                }
+              }
+            } catch (userError) {
+              console.error('Erreur lors de la vérification des données utilisateur:', userError);
+              // Ne pas bloquer la connexion si la vérification échoue
+            }
+          }, 1000);
         }
       } else {
         if (password !== confirmPassword) {
@@ -93,6 +125,15 @@ export function LoginForm() {
             });
 
             if (result?.ok) {
+              // Envoyer un email de bienvenue après connexion réussie (première connexion)
+              try {
+                await emailService.sendWelcomeEmail(email, name);
+                console.log('Email de bienvenue envoyé avec succès');
+              } catch (emailError) {
+                console.error('Erreur lors de l\'envoi de l\'email de bienvenue:', emailError);
+                // Ne pas bloquer la connexion si l'email échoue
+              }
+              
               router.push('/');
             } else if (result?.error) {
               setError('Inscription réussie, mais erreur de connexion automatique');

@@ -9,6 +9,7 @@ import { User } from '../entities/user.entity';
 import { Account } from '../entities/accounts.entity';
 import { Session } from '../entities/session.entity';
 import { VerificationRequest } from '../entities/verification-request.entity';
+import { EmailService } from '../services/email.service';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { VerificationRequest } from '../entities/verification-request.entity';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, EmailService],
   exports: [AuthService],
 })
 export class AuthModule {}

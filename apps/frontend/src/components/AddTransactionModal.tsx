@@ -14,6 +14,8 @@ import {
 } from '@/types/budget';
 import { useTransactions } from '@/hooks/useTransactions';
 import { FaSpinner } from 'react-icons/fa';
+import { emailService } from '@/services/email.service';
+import { useSession } from 'next-auth/react';
 
 interface AddTransactionModalProps {
   open: boolean;
@@ -22,6 +24,7 @@ interface AddTransactionModalProps {
 
 export function AddTransactionModal({ open, onClose }: AddTransactionModalProps) {
   const { addTransaction, isAdding } = useTransactions();
+  const { data: session } = useSession();
   
   // État du stepper
   const [currentStep, setCurrentStep] = useState(1);
@@ -86,7 +89,7 @@ export function AddTransactionModal({ open, onClose }: AddTransactionModalProps)
     setRecurringEndDate('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!amount || !category || !description) return;
@@ -104,7 +107,28 @@ export function AddTransactionModal({ open, onClose }: AddTransactionModalProps)
       recurringEndDate: isRecurring && recurringEndDate ? new Date(recurringEndDate) : undefined,
     };
 
-    addTransaction(transactionData);
+    // Ajouter la transaction
+    await addTransaction(transactionData);
+
+    // Envoyer une notification email si l'utilisateur est connecté
+    if (session?.user?.email) {
+      try {
+        await emailService.sendTransactionNotification(session.user.email, {
+          userName: session.user.name || 'Utilisateur',
+          userEmail: session.user.email,
+          transactionType: type,
+          amount: parseFloat(amount),
+          description,
+          date: new Date(date).toISOString(),
+          appName: 'Budget Plus',
+        });
+        console.log('Notification de transaction envoyée avec succès');
+      } catch (emailError) {
+        console.error('Erreur lors de l\'envoi de la notification de transaction:', emailError);
+        // Ne pas bloquer l'ajout de transaction si l'email échoue
+      }
+    }
+
     resetForm();
     onClose();
   };
@@ -178,6 +202,7 @@ export function AddTransactionModal({ open, onClose }: AddTransactionModalProps)
           disabled={!canProceed}
           className="flex-1"
         >
+          {/* @ts-ignore */}
          {isAdding ? <FaSpinner className="h-4 w-4 animate-spin" /> : 'Ajouter'}
         </Button>
       )}

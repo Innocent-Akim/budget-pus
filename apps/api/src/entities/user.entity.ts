@@ -1,11 +1,11 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  OneToMany,
-  Index,
+    Entity,
+    PrimaryGeneratedColumn,
+    Column,
+    CreateDateColumn,
+    UpdateDateColumn,
+    OneToMany,
+    Index,
 } from 'typeorm';
 import { Transaction } from './transaction.entity';
 import { Goal } from './goal.entity';
@@ -54,6 +54,9 @@ export class User {
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   totalSavings: number;
+
+  @Column({ name: 'last_login_at', type: 'timestamptz', nullable: true })
+  lastLoginAt: Date;
 
   @CreateDateColumn()
   createdAt: Date;
